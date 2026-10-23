@@ -1,69 +1,81 @@
-# Open Air Suspension Management (OAS-Man)
-[![image](https://github.com/user-attachments/assets/2990d62f-51a5-47d8-a54a-e71efa27a2cd)](https://oasman.dev) 
-<!---![image](https://github.com/user-attachments/assets/ea535981-4f51-4782-8f93-9eb1126dc81b)-->
+# C5 allroad air suspension controller
 
+Drop-in replacement for the 2001 Audi C5 allroad air suspension control module (J197, `4Z7 907 553 B`, Continental/Hella `5SG 008 352-03`, VCDS address 34).
 
-###  [ <img src="https://github.com/user-attachments/assets/d6edf30f-0ae1-477c-ac8e-d6a4e7444bd0" alt="discord icon" width="40"/> Please click here to join the Discord server](https://discord.gg/pUf7FmHKpg) 
-###  [ <img src="https://github.com/user-attachments/assets/04ea84f8-5977-46fa-a044-c5cdf82e4bf3" alt="tutorial icon" width="40"/> Click here to view the comprehensive build tutorial and documentation!](https://oasman.dev)
-###  [ <img src="https://github.com/user-attachments/assets/82590a11-25d7-4a6f-9b23-a3656df55c48" alt="update icon" width="40"/> Click here for the oasman installer/update page](https://oasman.dev/flash)
+This repository is Lee Welsch's fork of [OAS-Man](https://github.com/gopro2027/ArduinoAirSuspensionController) (GPL-3.0). The OAS-Man firmware tree is still here. This pass is documentation and hardware scaffolding only. No firmware behaviour has been changed.
 
-### Important Info To Potential Creators:
-Please join the discord for more specific information before you built it!<br>
-There may be important information to share before you begin purchasing parts.<br>
+**Status:** design v0.1. Most J197 harness pins are unknown. Do not assign unknown pins. Do not flash or drive valves from this work.
 
-### Overview:
-This is intended as a DIY replacement for products such as Airlift 3P/3H ($1500) or Airtek Stage 2+ ($1000) with a build cost of less than $500. Combined with the customizability of open sourced code, I hope this is a tempting option for some DIY-ers out there.<br>
-Our goal with this project is to provide the car community with a modern fully customizable well documented air suspension system with a budget build cost in mind, all not bound by the limitations of a single company. The rest of your car is custom to you, why not your air suspension too?<br>
-- Want to customize the app to match your ride? You got it.<br>
-- Did your proprietary air suspension software stop working and there's no update? Not an issue here!<br>
-- Sensor broke in your proprietary manifold and you have to buy a whole new one for $1000? Not an issue here, just replace the sensor for $10.<br>
-- Want to use bespoke heavy duty valves but also have a nice user interface? Look no further than OAS-Man!<br>
-- Control your system with a PS3/PS4/Xbox controller? Yep, [we have that](https://www.youtube.com/shorts/fbXJVwzc6P0)<br>
-- Restomodding an old air suspension system? OAS-Man may be the solution!<br>
-- Literally any idea you've ever wanted to try with air suspension? OASMan is the best place to start.<br>
+## Why
 
-This github repo includes an android app<sup>1</sup> and esp32 code along with some 3d printable files and a PCB. The PCB is pre-made SMD and ready for upload in JLCPCB with assembly so minimal-to-no soldering required. There is also a pre-made touch screen device you can order ($25 to $40) which is used as the dedicated controller<sup>2</sup>. There is an easy to use webpage to upload the software so there is no coding required. You will still need to supply the rest of your system which is not covered in this project, such as struts/bags, tank, compressor, tubing and fittings, ect. So that is what you would need in addition to this, similarly to what you would need for one of the on-the-shelf manifolds. If you are unsure what to purchase, I suggest referencing (or purchasing!) the [Airtekk Stage 1 Kit](https://www.airtekk.com/product-p/uni-stage1-kit.htm) as that will just about cover everything you need.<br>
-<sub>1. The mobile app is behind on development and lacks various features of the controller software, and currently only has an android release. Recommended to use the touch screen controller for full functionality.</sub><br>
-<sub>2. Please view the tutorial and build instructions for more info.</sub>
+Lee's car is a 2001 Audi allroad C5, VIN `WAUYP64B31N165751`, about 243k miles. The stock module fails in ways that are hard to repair:
 
-### Branch Information:
-**main branch = ESP32** (Current full version of OASMan)<br>
-**dev branch = ESP32** (Bleeding edge updates to OASMAN)<br>
-**nano-v1 branch = Arduino Nano** (outdated, no longer maintained, only exists for legacy purposes)<br>
-**Other branches = current dev work** (Other dev work which you can ignore)<br>
-<br>
-### Folder Information:
-**tutorial** - Contains important build instructions (must read)<br>
-**OASMan_ESP32** - The main board project<br>
-**Wireless_Controller** - The project for the wireless controller of the main board<br>
-**builds** - Mobile App Builds (apk's ect)<br>
-**ESP32_SHARED_LIBS** - Contains files used between the main board and controller projects. Notably the config file which you may or may not need to edit.<br>
-**LCDImageCreatorTool** - Code generator for making images for the tiny 128x64 screen on the manifold.<br>
-**MobileApp** - New flutter mobile app using BLE (incomplete at the time of this writing)<br>
-**3d Prints** - Contains files for 3d printing (more info in tutorials)<br>
-**PCB** - PCB files. More info in tutorial<br>
-**PS3_Controller_Tool** - Contains instructions & exe for setting the MAC address of your ps3 controller to work with OASMan<br>
-**photos** - photos<br>
-<br>
+- **EEPROM corruption (VCDS fault 65535).** The original module stores calibration in a 24C16-class EEPROM (one source, unverified). A bad write leaves the car with an internal fault and no level control.
+- **Water.** The module sits in the left cargo-area side panel. Water ingress is a known kill.
+- **Voltage.** Load dump, reverse battery, and brownout damage the stock supply. The replacement parks valves closed on brownout.
 
-<br>
+Index B (`553 B`) uses the control strategy on SSP 243 p.12, not the Index A strategy.
 
-<!---
-**Loose steps:** <br>
-1. Order parts, order circuit board on JLPCB website, 3d print parts
-2. Solder parts to circuit board, flip all switches to off
-    1. For the manifold connector, wire the white wires (abcdefgh) in alphabetical order on the board, so 1 is a, 2 is b, and so on. The 9th wire goes to the spot right above the rest of the wires.
-    2. The pressure sensors go in order... 1(manifold) -> FP (board) ... 4 -> RD. In general the order of everything is FRONT PASSENGER, REAR PASSENGER, FRONT DRIVER, REAR DRIVER abbreviatted FP, RP, FD, RD, sorry for the odd order it happened by accident
-4. Configure code:
-    1. get mac address of HC-06 bluetooth device by using an app or sommething to find it.
-    2. Put the mac address in the android code, replacing the old mac address
-    3. (Optional) Update the passwords in the app and arduino code if you want
-    4. Write code to arduino
-5. Circuit board single switch off, on the double switch make the top one on and bottom one off (this will power the arduino by 5v from the buck converter. 12 is bottom switch if you want to use that instead but you can ignore it)
--->
-![OAS-Man Final v2](https://github.com/user-attachments/assets/7cc1af3d-1113-4094-8ff5-7ee16f282eb0)
-<!--![wireless_contoller](https://github.com/user-attachments/assets/ef3c085b-e8ef-4365-bd6b-093a90eec54d)
-![manifold](https://github.com/user-attachments/assets/d93784e5-7e5e-4bb0-891a-8a2a8e4d4da0)
-![app_airsuspension](https://user-images.githubusercontent.com/7937950/236578835-0e3a208d-48cf-48e8-a882-4479f1afe35c.png)-->
-<!--![car_airsuspension](https://user-images.githubusercontent.com/7937950/236578918-bfa39ad6-a3b5-4d52-b36a-be34e8c608af.png)-->
-<!--![oasman mascot car](https://github.com/user-attachments/assets/aef9e896-0be0-4203-92d2-81836c27fd5d)-->
+Lee has two `553 B` modules:
+
+| Unit | HW / SW (Lee) | Date | Role |
+|------|---------------|------|------|
+| Continental `15.15228-0007.2` | H04 / S025 | 17.08.00 | Thought to be the installed unit |
+| Continental `15.15228-0016.2` | H05 / S031 | 27.03.01 | Spare. Label photo in `docs/allroad/sources/module-label.jpg` (printed line reads `H05 / S0331`) |
+
+## Relationship to OAS-Man
+
+OAS-Man is an open-source ESP32 air-suspension controller (manifold + wireless controller + Android app) by [gopro2027](https://github.com/gopro2027/ArduinoAirSuspensionController). Credit and thanks to that project and its contributors.
+
+This fork keeps the OAS-Man tree so solenoid, compressor, manifold, BLE, and the phone app can be reused. J197 is not an aftermarket 8-valve manifold: it levels from height-sensor PWM, talks VAG CAN and K-line, and drives a 6-valve OEM block plus compressor relay. New modules will wrap the OAS-Man core. See [docs/allroad/FIRMWARE_PLAN.md](docs/allroad/FIRMWARE_PLAN.md).
+
+The original OAS-Man README is at [docs/UPSTREAM_OASMAN_README.md](docs/UPSTREAM_OASMAN_README.md).
+
+**Licence:** firmware derived from OAS-Man stays **GPL-3.0**. Hardware blocks copied from [OpenHaldex-C6](https://github.com/Forbes-Automotive/OpenHaldex-C6) keep that project's MIT notice. See [hardware/allroad-j197/LICENSES.md](hardware/allroad-j197/LICENSES.md) and the root [LICENSE](LICENSE).
+
+## Current status
+
+| Area | State |
+|------|--------|
+| Design notes | v0.1, frozen in `docs/allroad/` |
+| Pinout | A few confirmed or likely pins. Most unknown. |
+| KiCad | Net-label skeleton only. No harness pin numbers. No connector symbols. |
+| Firmware | Unchanged OAS-Man tree. No allroad env yet. |
+| VCDS | Plan only. Protocol most likely KWP1281 at address 34. Unverified. |
+
+## Roadmap
+
+1. **Measure** — housings, meter pinout, valve coil ohms, CAN log, E281 logic trace, VCDS capture of a working module. [TEST_PLAN.md](docs/allroad/TEST_PLAN.md)
+2. **Pinout** — move pins from unknown to confirmed only after a measurement. [PINOUT.md](docs/allroad/PINOUT.md), [OPEN_QUESTIONS.md](docs/allroad/OPEN_QUESTIONS.md)
+3. **Schematic / PCB** — assign connector symbols, finish the v0.1 blocks, pigtail adapter. [HARDWARE.md](docs/allroad/HARDWARE.md)
+4. **Firmware** — ESP32-S3 port of OAS-Man core; PWM height loop; FRAM A/B + CRC; CAN listen-only; E281 serial; VCDS responder. [FIRMWARE_PLAN.md](docs/allroad/FIRMWARE_PLAN.md)
+5. **Bench** — valves, sensors, brownout park, FRAM corruption test, K-line against VCDS. No car until that passes.
+6. **Car, pigtail** — cargo-area install with donor plugs. Keep the working J197.
+7. **v0.2 option** — reuse a desoldered J197 header for a true drop-in.
+
+Blocking for v0.2: ELSA/Bentley current-flow diagram, VAG housing numbers, J1-9 conflict, E281 protocol, CAN messages J197 sends.
+
+## Docs
+
+| File | Contents |
+|------|----------|
+| [docs/allroad/OVERVIEW.md](docs/allroad/OVERVIEW.md) | Vehicle, module, goals |
+| [docs/allroad/PINOUT.md](docs/allroad/PINOUT.md) | Confirmed / likely / unknown pins |
+| [docs/allroad/HARDWARE.md](docs/allroad/HARDWARE.md) | Blocks, connector strategy |
+| [docs/allroad/BOM.md](docs/allroad/BOM.md) | Draft parts |
+| [docs/allroad/FIRMWARE_PLAN.md](docs/allroad/FIRMWARE_PLAN.md) | What to reuse, what to write |
+| [docs/allroad/DIAGNOSTICS_VCDS.md](docs/allroad/DIAGNOSTICS_VCDS.md) | Address 34 / KWP1281 plan |
+| [docs/allroad/TEST_PLAN.md](docs/allroad/TEST_PLAN.md) | What Lee measures next |
+| [docs/allroad/DECISIONS.md](docs/allroad/DECISIONS.md) | Locked choices |
+| [docs/allroad/OPEN_QUESTIONS.md](docs/allroad/OPEN_QUESTIONS.md) | Unknowns |
+| [docs/allroad/sources/](docs/allroad/sources/) | SSP 243 and the module label photo |
+
+Agent entry points: [CLAUDE.md](CLAUDE.md), [AGENTS.md](AGENTS.md).
+
+## Hardware
+
+KiCad skeleton and reference copies: [hardware/allroad-j197/](hardware/allroad-j197/).
+
+## Rule for later agents
+
+Unknown pins stay marked **unknown** until measured. Do not invent pin numbers, housing part numbers, or VCDS ID strings. Capture those from the car or the working module.
